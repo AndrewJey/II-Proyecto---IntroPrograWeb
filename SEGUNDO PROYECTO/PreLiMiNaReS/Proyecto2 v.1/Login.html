@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<!-- "@nDr3w-JeY" -->
+<title>Login</title>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset="iso-8859-1" />
+	<title>LOG-IN</title>
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+	<script type="text/javascript" src="js/app.js"></script>
+	<script src="js/jquery-1.11.1.min.js"> </script>
+</head>
+<body>
+	<header> 
+	<div class="container">
+	<br>
+	<center> <img src="LogoUTN.jpg">
+		<div class="row">
+			<div class="col-xs-12 col-sm-6 col-md-6 col-sm-offset-3 col-md-offset-3 login" >
+				<form id="form">
+					<h2><font color="blue">UTN Perfiles</h2>
+					<p id="msjLogin"></p>
+					<div class="form-group">
+						<div class="input-group">
+							<span class="input-group-addon"><span class="glyphicon glyphicon-envelope"></span></span>
+							<input type="text" class="form-control" placeholder="Usuario" id="Usuario" required="">
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="input-group">
+							<span class="input-group-addon"><span class="glyphicon glyphicon-lock"></span></span>
+							<input type="contraseña" class="form-control" placeholder="Contraseña" id="contraseña" required="">
+						</div>
+					</div>
+				</form>
+				<button class="btn btn-info" id="btnLogin"><b>Log-In</b></button>
+				<br>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		prepareBinding();
+	</script>
+</body>
+</html>
