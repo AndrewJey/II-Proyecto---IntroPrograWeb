@@ -31,3 +31,10 @@ Inventario y compilaciones locales del 2026-11-15. Una compilación correcta no 
 
 `.gitignore` excluye credenciales locales, estado del editor y salidas de las herramientas detectadas. No deja de versionar archivos que ya estaban en Git. Los manifiestos, archivos de bloqueo, recursos fuente y scripts de esquema forman parte del código.
 <!-- local-development:end -->
+
+<!-- improvements-20261119:start -->
+## Mejoras y verificación funcional (2026-11-19)
+
+- **Mejoras aplicadas:** Modernización completa de `II Proyecto` (`Login.html`, `index.html`, `js/store.js`, `js/app.js`, `css/modern-app.css`) + página índice en raíz (`index.html`): corrección de fallos al editar estudiantes sin foto, eliminación off-by-one, atributos sin comillas, enlaces rotos (`Login.html`) y renderizado seguro sin XSS.
+- **Pruebas ejecutadas:** `node --test tests/store.test.mjs` (2/2 pruebas aprobadas: login admin/usuarios y CRUD completo con preservación de imagen).
+<!-- improvements-20261119:end -->

@@ -1,77 +1,104 @@
-	<!DOCTYPE html>
-	<html lang="es">
-	<!-- "@nDr3w-JeY" -->
-	<title>Índice</title>
-	<head>
-		<meta charset="UTF-8">
-		<title>Bienvenido</title>
-		<link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
-		<script type="text/javascript" src="js/app.js"></script>
-		<script src="js/jquery-1.11.1.min.js"> </script>
-	</head>
-	<body>
-	  <header>
-		<div class="row">
-			<div class="col-xs-10 col-sm-10 col-md-10 col-lg-10">
-				<img src="LogoUTN.png">
-			</div>
-			<div class="col-xs-2 col-sm-2 col-md-2 col-lg-2 msj"> </div>
-		</div>
-		<div class="row">
-			<div id="tab-box" class="col-md-12">
-				<div id="tab-1" class="tab">
-					<span><a href="#tab-1">Tablero</a></span>
-					<span>
-					<backgroundcolor="#F4FA58">
-						<p><font color="#000000"><b>-Últimas Búsquedas Realizadas: </font></b></p>
-					<ul>
-						<li><font color="#088A08">2014/06/01</font> <font color="#000000">-</font> <font color="#013ADF"><a href="https://angularjs.org/" title="Angular JS" target="_blank">Angular JS</a></font></li>
-						<li><font color="#088A08">2014/07/05</font> <font color="#000000">-</font> <font color="#013ADF"><a href="http://www.mysql.com/" title="MySQL" target="_blank">MySQL</a></font></li>
-						<li><font color="#088A08">2014/08/10</font> <font color="#000000">-</font> <font color="#013ADF"><a href="http://php.net/" title="PhP" target="_blank">PHP CODE</a></font></li>
-						<li><font color="#088A08">2014/08/17</font> <font color="#000000">-</font> <font color="#013ADF"><a href="https://www.python.org/" title="Python" target="_blank">Python New Paradigm</a></font></li>
-					</ul>
+<!DOCTYPE html>
+<html lang="es">
+<!-- "@nDr3w-JeY" -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UTN Perfiles — Tablero Principal</title>
+  <link rel="stylesheet" href="css/modern-app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-brand">
+        <img src="LogoUTN.png" alt="Logotipo UTN">
+        <h1>UTN Perfiles</h1>
+      </div>
+      <div class="topbar-user msj">
+        <span id="welcome-user">¡Hola! Invitado</span>
+        <button id="btn-logout" type="button" class="btn btn-secondary btn-sm">Salir</button>
+      </div>
+    </div>
+  </header>
 
-<!-- Search Google -->
-<center>
-<FORM method=GET action="http://www.google.com/search" target="_blank">
-<input type=hidden name=ie value=UTF-8>
-<input type=hidden name=oe value=UTF-8>
-<TABLE bgcolor="#FFFFFF"><tr><td>
-<A HREF="http://www.google.com/" title="Google" target="_blank">
-<IMG SRC="http://www.google.com/logos/Logo_40wht.gif" 
-border="0" ALT="Google" align="absmiddle" target="_blank"></A>
-<INPUT TYPE=text name=q size=25 maxlength=255 value="">
-<INPUT type=submit name=btnG VALUE="Google Search">
-</td></tr></TABLE>
-</FORM>
-</center>
-<!-- Search Google -->
+  <main class="main">
+    <nav class="tabs" role="tablist" aria-label="Módulos de gestión">
+      <button id="tab-btn-1" class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-1" data-tab="1" type="button">Tablero</button>
+      <button id="tab-btn-2" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-2" data-tab="2" type="button">Carreras <span id="pill-careers" class="pill">0</span></button>
+      <button id="tab-btn-3" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-3" data-tab="3" type="button">Estudiantes <span id="pill-students" class="pill">0</span></button>
+      <button id="tab-btn-4" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-4" data-tab="4" type="button">Usuarios <span id="pill-users" class="pill">0</span></button>
+    </nav>
 
-					</span>
-				</div>
-				<div id="tab-2" class="tab">
-					<span><a href="#tab-2">Carreras</a></span>
-					<span id ="carreras"></span>
-				</div>
-				<div id="tab-3" class="tab">
-					<span><a href="#tab-3">Estudiantes</a></span>
-					<span id="estudiantes">
-					</span>
-				</div>
-				<div id="tab-4" class="tab">
-					<span><a href="#tab-4">Usuarios</a></span>
-					<span id="usuarios">
-					</span>
-				</div>
-			</div>
-		</div>
-		<script type="text/javascript">
-			prepareBinding();
-		</script>
-	    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+    <section id="tab-1" class="card" role="tabpanel" aria-labelledby="tab-btn-1">
+      <div class="kpi-grid">
+        <div class="kpi"><span>Carreras</span><strong id="kpi-careers">0</strong></div>
+        <div class="kpi"><span>Estudiantes</span><strong id="kpi-students">0</strong></div>
+        <div class="kpi"><span>Usuarios</span><strong id="kpi-users">0</strong></div>
+      </div>
 
-			<p><font color="#151515"><b>-DERECHOS DE AUTOR: </b><i>Andr&eacute;s J. Jim&eacute;nez Leandro</i></font></p>
+      <form id="local-search-form" class="search-row" role="search">
+        <input id="local-search-input" type="search" placeholder="Filtrar carreras, estudiantes o usuarios locales..." aria-label="Buscar registros locales">
+        <button type="submit" class="btn btn-primary">Buscar</button>
+        <button id="local-search-clear" type="button" class="btn btn-secondary">Limpiar</button>
+      </form>
+      <div id="local-search-results" aria-live="polite"></div>
 
-	    </br>
-	</body>
-	</html>
+      <h2 style="font-size:1.05rem;margin:1.2rem 0 0.5rem;">Últimas búsquedas de referencia</h2>
+      <ul class="links-list">
+        <li><span class="date-tag">2014/06/01</span><a href="https://angular.dev/" target="_blank" rel="noopener noreferrer">Angular / AngularJS</a></li>
+        <li><span class="date-tag">2014/07/05</span><a href="https://www.mysql.com/" target="_blank" rel="noopener noreferrer">MySQL</a></li>
+        <li><span class="date-tag">2014/08/10</span><a href="https://www.php.net/" target="_blank" rel="noopener noreferrer">PHP Code</a></li>
+        <li><span class="date-tag">2014/08/17</span><a href="https://www.python.org/" target="_blank" rel="noopener noreferrer">Python New Paradigm</a></li>
+      </ul>
+
+      <form method="get" action="https://www.google.com/search" target="_blank" rel="noopener noreferrer" class="search-row">
+        <input type="search" name="q" placeholder="Buscar en Google..." aria-label="Buscar en Google">
+        <button type="submit" class="btn btn-secondary">Buscar en Google</button>
+      </form>
+    </section>
+
+    <section id="tab-2" class="card" role="tabpanel" aria-labelledby="tab-btn-2" hidden>
+      <div class="toolbar">
+        <h2 style="margin:0;font-size:1.15rem;">Carreras</h2>
+        <button id="btn-add-career" type="button" class="btn btn-primary">+ Nueva carrera</button>
+      </div>
+      <div id="carreras" class="table-scroll"></div>
+    </section>
+
+    <section id="tab-3" class="card" role="tabpanel" aria-labelledby="tab-btn-3" hidden>
+      <div class="toolbar">
+        <h2 style="margin:0;font-size:1.15rem;">Estudiantes</h2>
+        <button id="btn-add-student" type="button" class="btn btn-primary">+ Nuevo estudiante</button>
+      </div>
+      <div id="estudiantes" class="table-scroll"></div>
+    </section>
+
+    <section id="tab-4" class="card" role="tabpanel" aria-labelledby="tab-btn-4" hidden>
+      <div class="toolbar">
+        <h2 style="margin:0;font-size:1.15rem;">Usuarios</h2>
+        <button id="btn-add-user" type="button" class="btn btn-primary">+ Nuevo usuario</button>
+      </div>
+      <div id="usuarios" class="table-scroll"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <strong>Derechos de autor:</strong> <em>Andrés J. Jiménez Leandro</em>
+  </footer>
+
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head">
+        <h2 id="modal-title">Formulario</h2>
+        <button id="modal-close" type="button" class="btn btn-secondary btn-sm" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast-box" class="toast-box" aria-live="polite"></div>
+
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

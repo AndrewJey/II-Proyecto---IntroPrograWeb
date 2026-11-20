@@ -1,470 +1,353 @@
-	var currentUser = "";
+(function () {
+  'use strict';
 
-function prepareBinding(){
-	$( "#btnLogin" ).click(function() { 
-		comprobarUsuario();
-	});
+  var store = window.IntroUTNStore.createStore();
+  var pendingPhoto = '';
 
-$( "a" ).click(function() { 
-		loadCareers();
-		loadStudents();
-		loadUsers();
-	});
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === 'className') node.className = attrs[k];
+        else if (k === 'text') node.textContent = attrs[k];
+        else if (k.startsWith('on') && typeof attrs[k] === 'function') node.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+        else if (attrs[k] !== null && attrs[k] !== undefined) node.setAttribute(k, String(attrs[k]));
+      });
+    }
+    (children || []).forEach(function (c) {
+      if (c == null) return;
+      node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return node;
+  }
 
-	loadCareers();
-	loadStudents();
-	loadUsers();
-	currentUser = JSON.parse(localStorage.getItem('currentUser'));
-$(".msj").html("<p><font color=#FF0000>¡Hola! </font> "+currentUser+" <a href=login.html>  &#187;Salir&#171;</a> </p>");
+  function toast(msg) {
+    var box = document.getElementById('toast-box');
+    if (!box) return;
+    var t = el('div', { className: 'toast toast-ok', text: msg });
+    box.appendChild(t);
+    setTimeout(function () { t.remove(); }, 3000);
+  }
 
-};
+  function openModal(title, node) {
+    document.getElementById('modal-title').textContent = title;
+    var body = document.getElementById('modal-body');
+    body.innerHTML = '';
+    body.appendChild(node);
+    document.getElementById('modal-backdrop').hidden = false;
+    var first = body.querySelector('input, select, button');
+    if (first) first.focus();
+  }
 
-function loadStudents(){
-	var students = JSON.parse(localStorage.getItem('students'));
-	if (students === null) {
-		students = [];
-	};
-	var table = "<table> <tr><th><font color=#0404B4><center>C&eacute;dula</th><th><center><font color=#0404B4>Nombre</th><th><font color=#0404B4>Carrera</th><th><center><font color=#0404B4>Imagen</th><th><font color=#FF0000>Eliminar</th><th><font color=#FF0000>Editar</th></font><th><img class=createStudent src=Create.png /></th></tr>";
-	for (var i = 0; i < students.length; i++) {
-		table += "<tr><td>"+students[i].cedula +"</td><td>"+students[i].nombre+"</td><td>"+students[i].carrera+"</td><td>"+students[i].imagen+"</td><td><img  src=delete.png data-index="+i
-		+" class=deleteStudent /></td><td><img class=editStudent src=edit.png data-index="+i+" /></td></tr>";
-	};
-	table+= "</table>";
-	$('#estudiantes').html(table);
-	$(".editStudent").click(function(){
-		var index = $(this).data('index');
-		editStudents(index);
-	});
+  function closeModal() {
+    document.getElementById('modal-backdrop').hidden = true;
+    document.getElementById('modal-body').innerHTML = '';
+    pendingPhoto = '';
+  }
 
-	$(".deleteStudent").click(function(){
-		var index = $(this).data('index');
-		deleteStudents(index);
-	});
+  function switchTab(id) {
+    for (var i = 1; i <= 4; i++) {
+      var btn = document.getElementById('tab-btn-' + i);
+      var panel = document.getElementById('tab-' + i);
+      var active = i === id;
+      if (btn) btn.setAttribute('aria-selected', String(active));
+      if (panel) panel.hidden = !active;
+    }
+  }
 
-	$(".createStudent").click(function(){
-		createStudents();
-	});
-};
+  function refreshCounts() {
+    var c = store.listCareers().length;
+    var s = store.listStudents().length;
+    var u = store.listUsers().length;
+    document.getElementById('pill-careers').textContent = c;
+    document.getElementById('pill-students').textContent = s;
+    document.getElementById('pill-users').textContent = u;
+    document.getElementById('kpi-careers').textContent = c;
+    document.getElementById('kpi-students').textContent = s;
+    document.getElementById('kpi-users').textContent = u;
+  }
 
-function loadCareers(){
-	var careers = JSON.parse(localStorage.getItem('careers'));
-	if (careers === null) {
-		careers = [];
-	};
-	var table = "<table> <tr><th><font color=#0404B4><center>C&oacute;digo</th><th><font color=#0404B4><center>Nombre</th><th><font color=#FF0000>Eliminar</th><th><font color=#FF0000>Editar</th><th><img class=createCareer src=Create.png /></th></tr>";
-	for (var i = 0; i < careers.length; i++) {
-		table += "<tr><td>"+careers[i].codigo +"</td><td>"+careers[i].nombre+"</td><td><img  src=delete.png data-index="+i
-		+" class=deleteCareer /></td><td><img class=editCareer src=edit.png data-index="+i+" /></td></tr>";
-	};
-	table+= "</table>";
-	$('#carreras').html(table);
+  function loadCareers() {
+    var wrap = document.getElementById('carreras');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    var list = store.listCareers();
+    if (!list.length) {
+      wrap.appendChild(el('div', { className: 'empty', text: 'Sin carreras registradas. Haz clic en "+ Nueva carrera".' }));
+      return;
+    }
+    var tbody = el('tbody');
+    list.forEach(function (c, idx) {
+      tbody.appendChild(el('tr', null, [
+        el('td', { text: c.codigo }),
+        el('td', { text: c.nombre }),
+        el('td', { className: 'actions-cell' }, [
+          el('button', { type: 'button', className: 'btn btn-secondary btn-sm', text: 'Editar', onClick: function () { openCareerModal(idx); } }),
+          el('button', { type: 'button', className: 'btn btn-danger btn-sm', text: 'Eliminar', onClick: function () { confirmDelete('carrera', function () { store.deleteCareer(idx); renderAll(); toast('Carrera eliminada.'); }); } })
+        ])
+      ]));
+    });
+    wrap.appendChild(el('table', { className: 'data-table' }, [
+      el('thead', null, [el('tr', null, [el('th', { text: 'Código' }), el('th', { text: 'Nombre' }), el('th', { text: 'Acciones' })])]),
+      tbody
+    ]));
+  }
 
-	$(".editCareer").click(function(){
-		var index = $(this).data('index');
-		editCareers(index);
-	});
+  function loadStudents() {
+    var wrap = document.getElementById('estudiantes');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    var list = store.listStudents();
+    if (!list.length) {
+      wrap.appendChild(el('div', { className: 'empty', text: 'Sin estudiantes registrados. Haz clic en "+ Nuevo estudiante".' }));
+      return;
+    }
+    var tbody = el('tbody');
+    list.forEach(function (s, idx) {
+      var photoCell = el('td');
+      if (s.imagen && s.imagen.indexOf('data:image/') === 0) {
+        photoCell.appendChild(el('img', { className: 'thumb', src: s.imagen, alt: 'Foto de ' + s.nombre }));
+      } else {
+        photoCell.textContent = s.imagen || '—';
+      }
+      tbody.appendChild(el('tr', null, [
+        el('td', { text: s.cedula }),
+        el('td', { text: s.nombre }),
+        el('td', { text: s.carrera }),
+        el('td', { text: s.ingles }),
+        photoCell,
+        el('td', { className: 'actions-cell' }, [
+          el('button', { type: 'button', className: 'btn btn-secondary btn-sm', text: 'Editar', onClick: function () { openStudentModal(idx); } }),
+          el('button', { type: 'button', className: 'btn btn-danger btn-sm', text: 'Eliminar', onClick: function () { confirmDelete('estudiante', function () { store.deleteStudent(idx); renderAll(); toast('Estudiante eliminado.'); }); } })
+        ])
+      ]));
+    });
+    wrap.appendChild(el('table', { className: 'data-table' }, [
+      el('thead', null, [el('tr', null, ['Cédula', 'Nombre', 'Carrera', 'Inglés', 'Imagen', 'Acciones'].map(function (h) { return el('th', { text: h }); }))]),
+      tbody
+    ]));
+  }
 
-	$(".deleteCareer").click(function(){
-		var index = $(this).data('index');
-		deleteCareers(index);
-	});
+  function loadUsers() {
+    var wrap = document.getElementById('usuarios');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    var list = store.listUsers();
+    if (!list.length) {
+      wrap.appendChild(el('div', { className: 'empty', text: 'Sin usuarios registrados. Haz clic en "+ Nuevo usuario".' }));
+      return;
+    }
+    var tbody = el('tbody');
+    list.forEach(function (u, idx) {
+      var roleLabel = u.role === 'Dc' ? 'Director de Carrera' : u.role === 'Admin' ? 'Administrador' : u.role;
+      tbody.appendChild(el('tr', null, [
+        el('td', { text: u.cedula }),
+        el('td', { text: u.nombre }),
+        el('td', { text: u.username }),
+        el('td', { text: roleLabel }),
+        el('td', { className: 'actions-cell' }, [
+          el('button', { type: 'button', className: 'btn btn-secondary btn-sm', text: 'Editar', onClick: function () { openUserModal(idx); } }),
+          el('button', { type: 'button', className: 'btn btn-danger btn-sm', text: 'Eliminar', onClick: function () { confirmDelete('usuario', function () { store.deleteUser(idx); renderAll(); toast('Usuario eliminado.'); }); } })
+        ])
+      ]));
+    });
+    wrap.appendChild(el('table', { className: 'data-table' }, [
+      el('thead', null, [el('tr', null, ['Cédula', 'Nombre', 'Usuario', 'Rol', 'Acciones'].map(function (h) { return el('th', { text: h }); }))]),
+      tbody
+    ]));
+  }
 
-	$(".createCareer").click(function(){
-		createCareers();
-	});
-};
+  function confirmDelete(label, onConfirm) {
+    openModal('Confirmar eliminación', el('div', null, [
+      el('p', { text: '¿Seguro que deseas eliminar este registro de ' + label + '?' }),
+      el('div', { className: 'modal-foot' }, [
+        el('button', { type: 'button', className: 'btn btn-secondary', text: 'Cancelar', onClick: closeModal }),
+        el('button', { type: 'button', className: 'btn btn-danger', text: 'Eliminar', onClick: function () { closeModal(); onConfirm(); } })
+      ])
+    ]));
+  }
 
-function loadUsers(){
-	var users = JSON.parse(localStorage.getItem('users'));
-	if (users === null) {
-		users = [];
-	};
-	var table = "<table> <tr><th><center><font color=#0404B4>C&eacute;dula</th><th><font color=#0404B4><center>Nombre</th><th><font color=#0404B4>Usuario</th><th><font color=#0404B4>Rol</font></th><th><font color=#FF0000>Eliminar</th><th><font color=#FF0000>Editar</th><th><img class=createUser src=Create.png /></th></tr>";
-	for (var i = 0; i < users.length; i++) {
-		table += "<tr><td>"+users[i].cedula +"</td><td>"+users[i].nombre+"</td><td>"+users[i].username+"</td><td>"+users[i].role+"</td><td><img  src=delete.png data-index="+i
-		+" class=deleteUser /></td><td><img class=editUser src=edit.png data-index="+i+" /></td></tr>";
-	};
-	table+= "</table>";
-	$('#usuarios').html(table);
+  function openCareerModal(idx) {
+    var isEdit = typeof idx === 'number';
+    var cur = isEdit ? store.listCareers()[idx] : null;
+    var err = el('div', { className: 'alert alert-error', role: 'alert', hidden: '' });
+    var codIn = el('input', { id: 'm-cod', type: 'text', required: '', value: cur ? cur.codigo : '' });
+    var nomIn = el('input', { id: 'm-nom', type: 'text', required: '', value: cur ? cur.nombre : '' });
+    openModal(isEdit ? 'Editar carrera' : 'Nueva carrera', el('form', {
+      onSubmit: function (e) {
+        e.preventDefault();
+        var res = store.saveCareer({ codigo: codIn.value, nombre: nomIn.value }, isEdit ? idx : undefined);
+        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
+        closeModal(); renderAll(); toast(isEdit ? 'Carrera actualizada.' : 'Carrera creada.');
+      }
+    }, [
+      err,
+      el('div', { className: 'field' }, [el('label', { for: 'm-cod', text: 'Código' }), codIn]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-nom', text: 'Nombre' }), nomIn]),
+      el('div', { className: 'modal-foot' }, [
+        el('button', { type: 'button', className: 'btn btn-secondary', text: 'Cancelar', onClick: closeModal }),
+        el('button', { type: 'submit', className: 'btn btn-primary', text: 'Guardar' })
+      ])
+    ]));
+  }
 
-	$(".editUser").click(function(){
-		var index = $(this).data('index');
-		editUsers(index);
-	});
+  function openStudentModal(idx) {
+    var isEdit = typeof idx === 'number';
+    var cur = isEdit ? store.listStudents()[idx] : null;
+    var careers = store.listCareers();
+    var err = el('div', { className: 'alert alert-error', role: 'alert', hidden: '' });
+    pendingPhoto = cur ? (cur.imagen || '') : '';
 
-	$(".deleteUser").click(function(){
-		var index = $(this).data('index');
-		deleteUsers(index);
-	});
+    var cedIn = el('input', { id: 'm-sced', type: 'text', required: '', value: cur ? cur.cedula : '' });
+    var nomIn = el('input', { id: 'm-snom', type: 'text', required: '', value: cur ? cur.nombre : '' });
+    var opts = careers.length ? careers.map(function (c) { return { v: c.codigo, l: c.nombre + ' (' + c.codigo + ')' }; }) : [{ v: 'Sin asignar', l: 'Sin asignar' }];
+    var carSel = el('select', { id: 'm-scar' }, opts.map(function (o) {
+      return el('option', { value: o.v, text: o.l, selected: cur && cur.carrera === o.v ? '' : null });
+    }));
+    var selectedEng = (cur && cur.ingles) || 'Alto';
+    var engRadios = ['Bajo', 'Intermedio', 'Alto'].map(function (lvl) {
+      var r = el('input', { type: 'radio', name: 'm-eng', value: lvl, checked: selectedEng === lvl ? '' : null });
+      return { r: r, node: el('label', null, [r, lvl]) };
+    });
+    var fileIn = el('input', {
+      id: 'm-simg',
+      type: 'file',
+      accept: 'image/png,image/jpeg,image/gif,image/webp',
+      onChange: function (evt) {
+        var f = evt.target.files && evt.target.files[0];
+        if (!f) return;
+        if (f.size > 1024 * 1024) { err.textContent = 'Imagen mayor a 1 MB.'; err.hidden = false; return; }
+        var reader = new FileReader();
+        reader.onload = function (e) { pendingPhoto = e.target.result; };
+        reader.readAsDataURL(f);
+      }
+    });
 
-	$(".createUser").click(function(){
-		createUsers();
-	});
-};
+    openModal(isEdit ? 'Editar estudiante' : 'Nuevo estudiante', el('form', {
+      onSubmit: function (e) {
+        e.preventDefault();
+        var checked = engRadios.find(function (x) { return x.r.checked; });
+        var res = store.saveStudent({
+          cedula: cedIn.value,
+          nombre: nomIn.value,
+          carrera: carSel.value,
+          ingles: checked ? checked.r.value : 'Alto',
+          imagen: pendingPhoto
+        }, isEdit ? idx : undefined);
+        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
+        closeModal(); renderAll(); toast(isEdit ? 'Estudiante actualizado.' : 'Estudiante creado.');
+      }
+    }, [
+      err,
+      el('div', { className: 'field' }, [el('label', { for: 'm-sced', text: 'Cédula' }), cedIn]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-snom', text: 'Nombre' }), nomIn]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-scar', text: 'Carrera' }), carSel]),
+      el('div', { className: 'field' }, [el('label', { text: 'Nivel de inglés' }), el('div', { className: 'radio-row' }, engRadios.map(function (x) { return x.node; }))]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-simg', text: 'Imagen (opcional, máx. 1 MB)' }), fileIn]),
+      el('div', { className: 'modal-foot' }, [
+        el('button', { type: 'button', className: 'btn btn-secondary', text: 'Cancelar', onClick: closeModal }),
+        el('button', { type: 'submit', className: 'btn btn-primary', text: 'Guardar' })
+      ])
+    ]));
+  }
 
-function deleteCareers(index){
-	var careers = JSON.parse(localStorage.getItem('careers'));
-	delete careers[index];
-	var arreglo = [];
-	for (var i = 0; i <= careers.length; i++) {
-		if (careers[i]==null) {
+  function openUserModal(idx) {
+    var isEdit = typeof idx === 'number';
+    var cur = isEdit ? store.listUsers()[idx] : null;
+    var err = el('div', { className: 'alert alert-error', role: 'alert', hidden: '' });
+    var cedIn = el('input', { id: 'm-uced', type: 'text', required: '', value: cur ? cur.cedula : '' });
+    var nomIn = el('input', { id: 'm-unom', type: 'text', required: '', value: cur ? cur.nombre : '' });
+    var rolSel = el('select', { id: 'm-urol' }, [
+      el('option', { value: 'Admin', text: 'Administrador', selected: cur && cur.role === 'Admin' ? '' : null }),
+      el('option', { value: 'Dc', text: 'Director de Carrera', selected: cur && cur.role === 'Dc' ? '' : null })
+    ]);
+    var usrIn = el('input', { id: 'm-uusr', type: 'text', required: '', value: cur ? cur.username : '' });
+    var pwdIn = el('input', { id: 'm-upwd', type: 'password', placeholder: isEdit ? 'Vacío para conservar actual' : 'Contraseña', required: isEdit ? null : '' });
 
-		}
-		else{
-			arreglo.push(careers[i]);
-		};
-	};
-    // volver a Salvar en Local_Storage
-    localStorage.setItem('careers',JSON.stringify(arreglo));
+    openModal(isEdit ? 'Editar usuario' : 'Nuevo usuario', el('form', {
+      onSubmit: function (e) {
+        e.preventDefault();
+        var res = store.saveUser({
+          cedula: cedIn.value,
+          nombre: nomIn.value,
+          role: rolSel.value,
+          username: usrIn.value,
+          password: pwdIn.value
+        }, isEdit ? idx : undefined);
+        if (!res.ok) { err.textContent = res.error; err.hidden = false; return; }
+        closeModal(); renderAll(); toast(isEdit ? 'Usuario actualizado.' : 'Usuario creado.');
+      }
+    }, [
+      err,
+      el('div', { className: 'field' }, [el('label', { for: 'm-uced', text: 'Cédula' }), cedIn]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-unom', text: 'Nombre' }), nomIn]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-urol', text: 'Rol' }), rolSel]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-uusr', text: 'Usuario' }), usrIn]),
+      el('div', { className: 'field' }, [el('label', { for: 'm-upwd', text: 'Contraseña' }), pwdIn]),
+      el('div', { className: 'modal-foot' }, [
+        el('button', { type: 'button', className: 'btn btn-secondary', text: 'Cancelar', onClick: closeModal }),
+        el('button', { type: 'submit', className: 'btn btn-primary', text: 'Guardar' })
+      ])
+    ]));
+  }
+
+  function renderAll() {
     loadCareers();
-};
-
-function deleteStudents(index){
-	var students = JSON.parse(localStorage.getItem('students'));
-	delete students[index];
-	var arreglo = [];
-	for (var i = 0; i <= students.length; i++) {
-		if (students[i]==null) {
-
-		}
-		else{
-			arreglo.push(students[i]);
-		};
-	};
-    // volver a Salvar en Local_Storage
-    localStorage.setItem('students',JSON.stringify(arreglo));
     loadStudents();
-};
-
-function deleteUsers(index){
-	var users = JSON.parse(localStorage.getItem('users'));
-	delete users[index];
-	var arreglo = [];
-	for (var i = 0; i <= users.length; i++) {
-		if (users[i]==null) {
-
-		}
-		else{
-			arreglo.push(users[i]);
-		};
-	};
-    // volver a Salvar en Local_Storage
-    localStorage.setItem('users',JSON.stringify(arreglo));
     loadUsers();
-};
+    refreshCounts();
+  }
 
-function createStudents(){
-	var careers = JSON.parse(localStorage.getItem('careers'));
-    if (careers === null) {
-    	careers = [];
-    }
-    var combo = "<select id=carrera name=carrera>";
-    for (var i = 0; i < careers.length; i++) {
-    	combo += "<option value="+careers[i].codigo+">"+careers[i].nombre+"</option>";
-    };
-    combo += "</select>";
-	var create = "<form><input type=file name=datafile size=40 /><output id=result /><br/><label>C&eacute;dula:  </label> <input type=text id=cedula name=cedula maxlength=9 size=9 ></input><br/>"
-	+"<br><label>Nombre:  </label> <input type=text id=nombre name=nombre maxlength=100 size=50 ></input><br/>"
-	+"<br><label for=carrera>Carrera:  </label> " + combo + "<br/><br><label>Nivel de Ingl&eacute;s:  </label> <br/>"
-	+"<input type=radio id=ingles name=ingles value=Bajo> Bajo </input> <input type=radio id=ingles name=ingles value=Intermedio > Intermedio </input>"
-    +"<input type=radio cheked=true id=ingles name=ingles value=Alto > Alto </input><br/>"
-	+"<br><center><input type=button value=Guardar onclick=saveCreatedStudent() /></form><br>"
-	+"<br><center><input type=button value=Cancelar onclick=loadStudents() />";
-	$('#estudiantes').html(create);
-};
+  function initLogin() {
+    var form = document.getElementById('form-1');
+    if (!form) return false;
+    var err = document.getElementById('login-error');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      err.hidden = true;
+      var res = store.login(document.getElementById('username').value, document.getElementById('password').value);
+      if (res.ok) window.location.href = 'index.html';
+      else { err.textContent = res.error; err.hidden = false; }
+    });
+    return true;
+  }
 
-function saveCreatedStudent(){
-	var cedula = $('#cedula').val(),
-	nombre = $('#nombre').val(),
-	carrera = $('#carrera').val(),
-	ingles = $("input[name='ingles']:checked").val(),
-	imagen = $('input[type=file]').val().split('\\').pop();
- 	
-	if (cedula == "" || nombre == "") {
-		createStudents();
-	}
-	else{
-	
-	// Crear Estudiante
-	var student = { "cedula": cedula, "nombre": nombre, "carrera": carrera, "ingles": ingles, "imagen": imagen};
+  function initDashboard() {
+    if (!document.getElementById('carreras')) return;
+    document.getElementById('welcome-user').textContent = '¡Hola! ' + store.getCurrentUser();
+    document.getElementById('btn-logout').addEventListener('click', function () {
+      store.logout();
+      window.location.href = 'Login.html';
+    });
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { switchTab(Number(btn.getAttribute('data-tab'))); });
+    });
+    document.getElementById('btn-add-career').addEventListener('click', function () { openCareerModal(); });
+    document.getElementById('btn-add-student').addEventListener('click', function () { openStudentModal(); });
+    document.getElementById('btn-add-user').addEventListener('click', function () { openUserModal(); });
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('modal-backdrop').addEventListener('click', function (e) { if (e.target === e.currentTarget) closeModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !document.getElementById('modal-backdrop').hidden) closeModal(); });
 
-    //Leer los estudiantes de Local_Storage
-    var students = JSON.parse(localStorage.getItem('students'));
-    if (students === null) {
-    	students = [];
-    }
+    document.getElementById('local-search-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = document.getElementById('local-search-input').value.trim();
+      var box = document.getElementById('local-search-results');
+      box.innerHTML = '';
+      if (!q) return;
+      var r = store.search(q);
+      var total = r.careers.length + r.students.length + r.users.length;
+      box.appendChild(el('div', { className: 'alert alert-info', text: total + ' coincidencia(s): ' + r.careers.length + ' carreras, ' + r.students.length + ' estudiantes, ' + r.users.length + ' usuarios.' }));
+    });
+    document.getElementById('local-search-clear').addEventListener('click', function () {
+      document.getElementById('local-search-input').value = '';
+      document.getElementById('local-search-results').innerHTML = '';
+    });
 
-    // agregar el estudiante
-    students.push(student);
+    renderAll();
+  }
 
-    // volver guardar en localstoraage
-    localStorage.setItem('students',JSON.stringify(students));
-    loadStudents();
-};
-};
-
-function createCareers(){
-	var create = "<form><label>C&oacute;digo:  </label> <input type=text id=codigo name=codigo maxlength=10 size=20 ></input><br/>"
-	+"<br><label>Nombre:  </label> <input type=text id=nombre name=nombre maxlength=100 size=50 ></input><br/>"
-	+"<br><center><input type=button value=Guardar onclick=saveCreatedCareer() /></form><br>"
-	+"<br><center><input type=button value=Cancelar onclick=loadCareers() />";
-	$('#carreras').html(create);
-};
-
-function saveCreatedCareer(){
-	var codigo = $('#codigo').val(),
-	nombre = $('#nombre').val();
-	if (codigo == "" || nombre=="") {
-		createCareers();
-	}
-	else{
-	// Crear la Carrera
-	var career = { "codigo": codigo, "nombre": nombre };
-
-    // Leer las Carreras de Local_Storage
-    var careers = JSON.parse(localStorage.getItem('careers'));
-    if (careers === null) {
-    	careers = [];
-    }
-
-    // Agregar la Carrera
-    careers.push(career);
-
-    // Volver Salvar en Local_Storage
-    localStorage.setItem('careers',JSON.stringify(careers));
-    loadCareers();
-};
-};
-
-function createUsers(){
-	var users = JSON.parse(localStorage.getItem('users'));
-    if (users === null) {
-    	users = [];
-    }
-    
-	var create = "<form><br/><label>C&eacute;dula:  </label> <input type=text id=cedula name=cedula maxlength=100 size=15 ></input><br/>"
-	+"<br><label>Nombre:  </label> <input type=text id=nombre name=nombre maxlength=100 size=50 ></input><br/>"
-	+"<br><label for=role>Rol:  </label> <select id=role name=role><option value=Admin>Administrador</option><option value=Dc>Director de Carrera</option></select><br/>"
-	+"<br><label>Usuario:  </label> <input type=text id=username name=username maxlength=100 size=50 ></input><br/>"
-	+"<br><label>Contrase&#241;a:  </label> <input type=text id=password name=password maxlength=100 size=50 ></input><br/>"
-	+"<br><center><input type=button value=Guardar onclick=saveCreatedUser() /></form><br>"
-	+"<br><center><input type=button value=Cancelar onclick=loadUsers() />";
-	$('#usuarios').html(create);
-};
-
-function saveCreatedUser(){
-	var cedula = $('#cedula').val(),
-	nombre = $('#nombre').val(),
-	role = $('#role').val(),
-	username = $('#username').val(),
-	password = $('#password').val();
-
-	if (cedula == "" || nombre == "" || username == "" || password == "") {
-		createUsers();
-	}
-	else{
-	// Crear Usuarios
-	var user = { "cedula": cedula, "nombre": nombre, "role": role, "username": username, "password": password};
-
-    // Leer los Usuarios de Local_Storage
-    var users = JSON.parse(localStorage.getItem('users'));
-    if (users === null) {
-    	users = [];
-    }
-
-    // Agregar el Usuario
-    users.push(user);
-
-    // Volver a Salvar en Local_Storage
-    localStorage.setItem('users',JSON.stringify(users));
-    loadUsers();
-};
-};
-
-function editStudents(index){
-
-	var students = JSON.parse(localStorage.getItem('students'));
-	var careers = JSON.parse(localStorage.getItem('careers'));
-	var combo = "<select id=carrera name=carrera>";
-    for (var i = 0; i < careers.length; i++) {
-    	combo += "<option value="+careers[i].codigo+">"+careers[i].nombre+"</option>";
-    };
-    combo += "</select>";
-	var edit = "<form><br/><label>C&eacute;dula:  </label> <input type=text id=cedula name=cedula maxlength=100 size=15 value="+students[index].cedula+" ></input><br/>"
-	+"<br><label>Nombre:  </label> <input type=text id=nombre name=nombre maxlength=100 size=50 value="+students[index].nombre+" ></input><br/>"
-	+"<br><label for=carrera>Carrera:  </label> " + combo + "<br/><br><label>Nivel de Ingl&eacute;s </label> <br/>"
-	+"<input type=radio id=ingles name=ingles value=Bajo> Bajo </input> <input type=radio id=ingles name=ingles value=Intermedio > Intermedio </input>"
-    +"<input type=radio cheked=true id=ingles name=ingles value=Alto > Alto </input><br/>"
-	+"<br><center><input type=button value=Guardar onclick=saveEditedStudent("+index+") /></form><br>"
-	+"<br><center><input type=button value=Cancelar onclick=loadStudents() />";
-	$('#estudiantes').html(edit);
-};
-
-function saveEditedStudent(index){
-
-	var cedula = $('#cedula').val(),
-	nombre = $('#nombre').val(),
-	carrera = $('#carrera').val(),
-	ingles = $("input[name='ingles']:checked").val();
-	imagen = $('input[type=file]').val().split('\\').pop();
-
-	if (cedula == "" || nombre == "") {
-
-	}
-	else{
-	// leer los estudiantes de localstorage
-    var students = JSON.parse(localStorage.getItem('students'));
-
-	students[index].cedula = cedula;
-	students[index].nombre = nombre;
-	students[index].carrera = carrera;
-	students[index].ingles = ingles;
-	students[index].imagen = imagen;
-	
-    // volver guardar en localstoraage
-    localStorage.setItem('students',JSON.stringify(students));
-    loadStudents();
-};
-};
-
-function editCareers(index){
-
-	var careers = JSON.parse(localStorage.getItem('careers'));
-	var edit = "<form><label>C&oacute;digo:  </label> <input type=text id=codigo name=codigo maxlength=10 size=10 value="+careers[index].codigo
-	+" ></input><br/><br><label>Nombre:  </label> <input type=text id=nombre name=nombre maxlength=100 size=50 value=\""+careers[index].nombre+"\" ></input><br/><br><center><input type=button value=Guardar onclick=saveEditedCareer("+index+") /></form><br>"
-	+"<br><center><input type=button value=Cancelar onclick=loadCareers() />";
-	$('#carreras').html(edit);
-};
-
-function saveEditedCareer(index){
-	var codigo = $('#codigo').val(),
-	nombre = $('#nombre').val();
-	if(codigo==""||nombre==""){
-
-	}
-	else{
-    // Leer las Carreras de Local_Storage
-    var careers = JSON.parse(localStorage.getItem('careers'));
-    careers[index].codigo = codigo;
-    careers[index].nombre = nombre;
-    localStorage.setItem('careers',JSON.stringify(careers));
-    loadCareers();
-};
-};
-
-function editUsers(index){
-
-	var users = JSON.parse(localStorage.getItem('users'));
-
-	var edit = "<form><br/><label>C&eacute;dula:  </label> <input type=text id=cedula name=cedula maxlength=10 size=10 value="+users[index].cedula+" ></input><br/>"
-	+"<br><label>Nombre:  </label> <input type=text id=nombre name=nombre maxlength=100 size=50 value="+users[index].nombre+" ></input><br/>"
-	+"<br><label for=role>Rol:  </label> <select id=role name=role><option value=Admin>Administrador</option><option value=Dc>Director de Carrera</option></select><br/>"
-	+"<br><label>Usuario:  </label> <input type=text id=username name=username maxlength=100 size=50 value="+users[index].username+" ></input><br/>"
-	+"<br><label>Contrase&#241;a:  </label> <input type=text id=password name=password maxlength=100 size=50 value="+users[index].password+" ></input><br/>"
-	+"<br><center><input type=button value=Guardar onclick=saveEditedUser("+index+") /></form><br>"
-	+"<br><center><input type=button value=Cancelar onclick=loadUsers() />";
-	$('#usuarios').html(edit);
-};
-
-function saveEditedUser(index){
-
-	var cedula = $('#cedula').val(),
-	nombre = $('#nombre').val(),
-	role = $('#role').val(),
-	username = $('#username').val(),
-	password = $('#password').val();
-
-	if (cedula == "" || nombre == "" || username == "" || password == "") {
-		
-	}
-	else{
-	// Leer los Usuarios de Local_Storage
-    var users = JSON.parse(localStorage.getItem('users'));
-
-	users[index].cedula = cedula;
-	users[index].nombre = nombre;
-	users[index].role = role;
-	users[index].username = username;
-	users[index].password = password;
-
-    // Volver a Salvar en Local_Storage
-    localStorage.setItem('users',JSON.stringify(users));
-    loadUsers();
-};
-};
-
-function comprobarUsuario(){
-	var correctUser = false;
-	var username = $('#username').val(),
-	password = $('#password').val();
-	if (username == "admin" && password == "admin") {
-		correctUser = true;
-	}
-	else{
-		var users = JSON.parse(localStorage.getItem('users'));
-		if (users === null) {
-			users = [];
-		}
-
-		for (var i = 0; i < users.length; i++) {
-			if (users[i].username == username && users[i].password == password) {
-				correctUser = true;
-			};
-
-		};
-
-	};
-	if (correctUser) {
-		currentUser = username;
-		localStorage.setItem('currentUser',JSON.stringify(currentUser));
-		document.location.href="index.html";
-	}
-	else{
-		document.location.href="Login.html";
-	};
-};
-
-
-function getImgBase64(imagen, callback) {  
-    var img = document.createElement('img'),  
-        canvas = document.createElement('canvas'),  
-        ctx = canvas.getContext('2d');  
-    img.src = imagen;  
-      
-    img.addEventListener('load', function() {  
-        canvas.width = this.width;  
-        canvas.height = this.height;  
-        ctx.drawImage(this, 0, 0);  
-        callback(canvas.toDataURL('image'));  
-    }, false);  
-};
-
-function setImg(ref, img) {  
-    getImgBase64(img, function(base64) {  
-        var imagenes = localStorage.imagenes && JSON.parse(localStorage.imagenes) || [];  
-        imagenes[ref] = base64;     
-        localStorage.imagenes = JSON.stringify(imagenes);  
-    });  
-};
-
-function getImg(ref) {  
-     var imagenes = localStorage.imagenes && JSON.parse(localStorage.imagenes) || [];  
-     return imagenes[ref] || '';  
-};
-
-function preLoadImg(ref, img) {  
-   var imagen = new Image(),  
-       data = getImg(ref);  
-     
-   imagen.addEventListener('load', function() {  
-        // Acciones una vez que tenemos cargada la Imágen.  
-   }, false);  
-  
-   if (data === '') {  
-      imagen.src = img;  
-      setImg(ref, img);  
-   }   
-   else {  
-      imagen.src = data;   
-   }  
-}  
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!initLogin()) initDashboard();
+  });
+})();
